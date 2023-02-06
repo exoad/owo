@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -77,13 +78,14 @@ public final class OwO
     private static final class OwO_Conf
     {
 
-        static final double STUTTER_CHANCE = 0.2d;
-        static final double EMOTICON_CHANCE = 0.05d;
-        static final double EXPRESS_CHANCE = 0.1d;
-        static final double PUNCTUATION_CHANCE = 0.02d;
-        static final double PUNCTUATION_CHANCE_MULTIPLIER = 0.1d;
-        static final int PUNCTUATION_MAXIM = 4;
-        static final double ALTER_CHANCE = 1d;
+        static double STUTTER_CHANCE = 0.2d;
+        static double EMOTICON_CHANCE = 0.01d;
+        static double EMOTICON_UTF8_CHANCE = Charset.isSupported("utf8") ? EMOTICON_CHANCE : 0d;
+        static double EXPRESS_CHANCE = 0.1d;
+        static double PUNCTUATION_CHANCE = 0.02d;
+        static double PUNCTUATION_CHANCE_MULTIPLIER = 0.1d;
+        static int PUNCTUATION_MAXIM = 4;
+        static double ALTER_CHANCE = 1d;
 
         static final java.util.Random RNG = new java.util.Random(392832903L);
 
@@ -110,8 +112,8 @@ public final class OwO
                 "hugs you",
                 "winks",
                 "wink wink",
-                "senpai!",
-                "baka",
+                "\"senpai!\"",
+                "\"baka!!\"",
                 "kawaii",
                 "<3"
         };
@@ -147,9 +149,14 @@ public final class OwO
                         "W"
                 },
                 {
-                        "ove",
+                        "/ove/g",
                         "uv"
                 },
+                {
+                        "oo",
+                        "u"
+                }
+
         };
 
         static final String[] _PUNCTUATION_ = {
@@ -170,11 +177,22 @@ public final class OwO
         return roll(chance_percent) ? res.get() : _default;
     }
 
-    static String stut(String str, int index, int times)
+    static String stut(String word)
     {
-        if (index >= str.length() - 1)
-            return str;
-        return copy(str.substring(index), "-", times);
+        int length = word.length();
+        if (length <= 1)
+            return word;
+        StringBuilder result = new StringBuilder();
+        int stutterCount = (length == 2) ? 1 : OwO_Conf.RNG.nextInt(2) + 1;
+        for (int i = 0; i < stutterCount; i++)
+        {
+            result.append(word.substring(0, 2));
+            if (i != stutterCount - 1)
+                result.append("-");
+        }
+
+        result.append(word.substring(2));
+        return result.toString();
     }
 
     static String copy(String seq, String sep, int n)
@@ -195,13 +213,19 @@ public final class OwO
     {
         String x = roll(() -> "(", "", 0.5d);
         return x + "*"
-                + (roll(0.5d) ? OwO_Conf._EXPRESS_[OwO_Conf.RNG.nextInt(OwO_Conf._EXPRESS_.length)] : dynm())
+                + (OwO_Conf.RNG.nextBoolean()
+                        ? OwO_Conf._EXPRESS_EXTRA_[OwO_Conf.RNG.nextInt(OwO_Conf._EXPRESS_EXTRA_.length)]
+                        : OwO_Conf.RNG.nextBoolean()
+                                ? OwO_Conf._EXPRESS_[OwO_Conf.RNG.nextInt(OwO_Conf._EXPRESS_.length)]
+                                : dynm())
                 + "*" + (x.equals("") ? "" : ")");
     }
 
     static String emot()
     {
-        return OwO_Conf._EMOTICONS_[OwO_Conf.RNG.nextInt(OwO_Conf._EMOTICONS_.length)];
+        return roll(OwO_Conf.EMOTICON_UTF8_CHANCE)
+                ? OwO_Conf._EMOTICONS_UTF8_[OwO_Conf.RNG.nextInt(OwO_Conf._EMOTICONS_UTF8_.length)]
+                : OwO_Conf._EMOTICONS_[OwO_Conf.RNG.nextInt(OwO_Conf._EMOTICONS_.length)];
     }
 
     public static String owoify(String context)
@@ -213,9 +237,9 @@ public final class OwO
             if (roll(OwO_Conf.ALTER_CHANCE))
             {
                 for (String[] reg : OwO_Conf._COMMONS_)
-                    word = word.replace(reg[0], reg[1]);
+                    word = word.replaceAll(reg[0], reg[1]);
                 if (roll(OwO.OwO_Conf.STUTTER_CHANCE))
-                    word = stut(word, 1, OwO_Conf.RNG.nextInt(3));
+                    word = stut(word);
                 if (roll(OwO_Conf.EMOTICON_CHANCE))
                     word = roll(0.5d) ? word + " " + emot() : emot() + " " + word;
                 if (roll(OwO_Conf.EXPRESS_CHANCE))
@@ -251,11 +275,10 @@ public final class OwO
             stut = OwO_Conf.RNG.nextDouble();
             if (alter <= OwO_Conf.ALTER_CHANCE)
             {
-
                 for (String[] reg : OwO_Conf._COMMONS_)
-                    word = word.replace(reg[0], reg[1]);
+                    word = word.replaceAll(reg[0], reg[1]);
                 if (stut >= OwO_Conf.STUTTER_CHANCE)
-                    word = stut(word, 1, OwO_Conf.RNG.nextInt(3));
+                    word = stut(word);
                 if (emot >= OwO_Conf.EMOTICON_CHANCE)
                     word = roll(0.5d) ? word + " " + emot() : emot() + " " + word;
                 if (expr >= OwO_Conf.EXPRESS_CHANCE)
